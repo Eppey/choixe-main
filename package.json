@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/Eppey/choixe-main#readme",
   "dependencies": {
+    "axios": "^0.27.2",
     "prettier": "^2.6.2",
     "ts-node": "^10.8.1"
   },
