@@ -1,11 +1,23 @@
 import axios from 'axios';
-import { REPORT_REQUEST_URL, SECTOR_REQUEST_OPTION, SECTOR_REQUEST_URL, WICS_DICT } from '../Constants';
+import AWS from 'aws-sdk';
+
+import {
+  AWS_REGION,
+  BATCH_SIZE,
+  REPORT_REQUEST_URL,
+  SECTOR_REQUEST_OPTION,
+  SECTOR_REQUEST_URL,
+  WICS_DICT,
+} from '../Constants';
+
+AWS.config.update({ region: AWS_REGION });
+const ddb = new AWS.DynamoDB();
 
 /**
  * Default report object
  */
 export interface Report {
-  reportIdx: number; // 리포트 번호
+  reportIdx: string; // 리포트 번호
   officeName: string; // 증권사
   businessCode: string; // 종목 번호
   businessName: string; // 종목 이름
@@ -87,5 +99,54 @@ export const getSector = async (stockId: string): Promise<Sector | null> => {
   } catch (e) {
     console.log(`[ReportTask]: Failed fetching sector for stockId: ${stockId}`);
     return null;
+  }
+};
+
+/**
+ * Adds new report data to the database in batch
+ * @param fromDate start date
+ * @param toDate end date
+ */
+export const updateReportData = async (fromDate: string, toDate: string): Promise<void> => {
+  const reports = await getReport(fromDate, toDate);
+  const reportChunks = reports.reduce((result, item, idx) => {
+    const chunkIdx = Math.floor(idx / BATCH_SIZE);
+    if (!result[chunkIdx]) {
+      result[chunkIdx] = [];
+    }
+    result[chunkIdx].push(item);
+    return result;
+  }, []);
+
+  for (const chunk of reportChunks) {
+    const params = {
+      RequestItems: {
+        reportListComplete: chunk.map((r: Report) => {
+          return {
+            PutRequest: {
+              Item: {
+                reportIdx: { S: r.reportIdx },
+                officeName: { S: r.officeName },
+                businessCode: { S: r.businessCode },
+                businessName: { S: r.businessName },
+                reportTitle: { S: r.reportTitle },
+                reportWriter: { S: r.reportWriter },
+                filePath: { S: r.filePath },
+                reportDate: { S: r.reportDate },
+                gradeValue: { S: r.gradeValue },
+                targetPrice: { S: r.targetPrice },
+                oldTargetPrice: { S: r.oldTargetPrice },
+                lSector: { S: r.lSector },
+                mSector: { S: r.mSector },
+                sSector: { S: r.sSector },
+              },
+            },
+          };
+        }),
+      },
+    };
+    ddb.batchWriteItem(params, (e) => {
+      console.log(`[ReportTask]: Error in updateReportData => ${e.message}`);
+    });
   }
 };

@@ -1,3 +1,12 @@
+/** The region of AWS */
+export const AWS_REGION = 'ap-northeast-2';
+
+/** The size of batch */
+export const BATCH_SIZE = 25;
+
+/** The name of the table that report data is stored */
+export const REPORT_DATA_TABLE = 'reportListComplete';
+
 /**
  * The url for scraping report data
  * @param fromDate starting date
