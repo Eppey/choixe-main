@@ -44,11 +44,11 @@ export interface Sector {
 
 /**
  * Fetch report data
- * @param fromDate start date
- * @param toDate end date
+ * @param fromDate start date, "YYYY-MM-DD"
+ * @param toDate end date, "YYYY-MM-DD"
  * @returns report data
  */
-export const getReport = async (fromDate: string, toDate: string): Promise<Report[]> => {
+export const getReports = async (fromDate: string, toDate: string): Promise<Report[]> => {
   const reportData: Report[] = [];
 
   try {
@@ -104,11 +104,11 @@ export const getSector = async (stockId: string): Promise<Sector | null> => {
 
 /**
  * Adds new report data to the database in batch
- * @param fromDate start date
- * @param toDate end date
+ * @param fromDate start date, "YYYY-MM-DD"
+ * @param toDate end date, "YYYY-MM-DD"
  */
-export const updateReportData = async (fromDate: string, toDate: string): Promise<void> => {
-  const reports = await getReport(fromDate, toDate);
+export const updateReportData = async (tableName: string, fromDate: string, toDate: string): Promise<void> => {
+  const reports = await getReports(fromDate, toDate);
   const reportChunks = reports.reduce((result, item, idx) => {
     const chunkIdx = Math.floor(idx / BATCH_SIZE);
     if (!result[chunkIdx]) {
@@ -121,7 +121,7 @@ export const updateReportData = async (fromDate: string, toDate: string): Promis
   for (const chunk of reportChunks) {
     const params = {
       RequestItems: {
-        reportListComplete: chunk.map((r: Report) => {
+        [tableName]: chunk.map((r: Report) => {
           return {
             PutRequest: {
               Item: {
@@ -150,3 +150,6 @@ export const updateReportData = async (fromDate: string, toDate: string): Promis
     });
   }
 };
+
+// example function execution for testing
+// updateReportData('reportList', '2022-05-01', '2022-05-02').then();

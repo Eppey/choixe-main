@@ -43,13 +43,13 @@ $ cd backend
 $ npm ci
 ```
 
-#### Build and run the project
+#### Test each lambda function
 
 Run following command in terminal.
 
 ```
 $ cd choixe-main/src/
-$ ts-node FILE_NAME_TO_TEST
+$ ts-node PATH_TO_FILE_FOR_TEST
 ```
 
 ## Running in AWS Lambda
