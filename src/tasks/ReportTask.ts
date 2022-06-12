@@ -44,8 +44,8 @@ export interface Sector {
 
 /**
  * Fetch report data
- * @param fromDate start date, "YYYY-MM-DD"
- * @param toDate end date, "YYYY-MM-DD"
+ * @param fromDate start date (yyyy-MM-dd)
+ * @param toDate end date (yyyy-MM-dd)
  * @returns report data
  */
 export const getReports = async (fromDate: string, toDate: string): Promise<Report[]> => {
@@ -58,7 +58,7 @@ export const getReports = async (fromDate: string, toDate: string): Promise<Repo
       const sector = await getSector(r.BUSINESS_CODE);
       if (sector) {
         reportData.push({
-          reportIdx: r.REPORT_IDX,
+          reportIdx: r.REPORT_IDX.toString(),
           officeName: r.OFFICE_NAME,
           businessCode: r.BUSINESS_CODE,
           businessName: r.BUSINESS_NAME,
@@ -78,7 +78,7 @@ export const getReports = async (fromDate: string, toDate: string): Promise<Repo
   } catch (e) {
     console.log(`[ReportTask]: Error => ${e.message}`);
   }
-  console.log(`[ReportTask]: Fetched ${reportData.length} reports (${fromDate}~${toDate})`);
+  console.log(`[ReportTask]: Fetched ${reportData.length} reports (${fromDate} ~ ${toDate})`);
   return reportData;
 };
 
@@ -107,7 +107,7 @@ export const getSector = async (stockId: string): Promise<Sector | null> => {
  * @param fromDate start date, "YYYY-MM-DD"
  * @param toDate end date, "YYYY-MM-DD"
  */
-export const updateReportData = async (tableName: string, fromDate: string, toDate: string): Promise<void> => {
+export const updateReportData = async (fromDate: string, toDate: string, tableName?: string): Promise<void> => {
   const reports = await getReports(fromDate, toDate);
   const reportChunks = reports.reduce((result, item, idx) => {
     const chunkIdx = Math.floor(idx / BATCH_SIZE);
@@ -117,36 +117,47 @@ export const updateReportData = async (tableName: string, fromDate: string, toDa
     result[chunkIdx].push(item);
     return result;
   }, []);
+  console.log(`[ReportTask]: Created ${reportChunks.length} chunks`);
 
   for (const chunk of reportChunks) {
-    const params = {
-      RequestItems: {
-        [tableName]: chunk.map((r: Report) => {
-          return {
-            PutRequest: {
-              Item: {
-                reportIdx: { S: r.reportIdx },
-                officeName: { S: r.officeName },
-                businessCode: { S: r.businessCode },
-                businessName: { S: r.businessName },
-                reportTitle: { S: r.reportTitle },
-                reportWriter: { S: r.reportWriter },
-                filePath: { S: r.filePath },
-                reportDate: { S: r.reportDate },
-                gradeValue: { S: r.gradeValue },
-                targetPrice: { S: r.targetPrice },
-                oldTargetPrice: { S: r.oldTargetPrice },
-                lSector: { S: r.lSector },
-                mSector: { S: r.mSector },
-                sSector: { S: r.sSector },
-              },
-            },
-          };
-        }),
-      },
-    };
+    const changeRequests = chunk.map((r: Report) => {
+      return {
+        PutRequest: {
+          Item: {
+            reportIdx: { S: r.reportIdx },
+            officeName: { S: r.officeName },
+            businessCode: { S: r.businessCode },
+            businessName: { S: r.businessName },
+            reportTitle: { S: r.reportTitle },
+            reportWriter: { S: r.reportWriter },
+            filePath: { S: r.filePath },
+            reportDate: { S: r.reportDate },
+            gradeValue: { S: r.gradeValue },
+            targetPrice: { S: r.targetPrice },
+            oldTargetPrice: { S: r.oldTargetPrice },
+            lSector: { S: r.lSector },
+            mSector: { S: r.mSector },
+            sSector: { S: r.sSector },
+          },
+        },
+      };
+    });
+    const params = tableName
+      ? {
+          RequestItems: {
+            [tableName]: changeRequests,
+          },
+        }
+      : {
+          RequestItems: {
+            reportTestTable: changeRequests,
+          },
+        };
     ddb.batchWriteItem(params, (e) => {
-      console.log(`[ReportTask]: Error in updateReportData => ${e.message}`);
+      if (e) {
+        console.log(`[ReportTask]: Error in updateReportData => ${e.message}`);
+      }
+      console.log(`[ReportTask]: Finished writing ${reports.length} items!`);
     });
   }
 };

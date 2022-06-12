@@ -1,6 +1,9 @@
 /** The region of AWS */
 export const AWS_REGION = 'ap-northeast-2';
 
+/** The default request timeout limit */
+export const TIMEOUT_LIMIT = 1500;
+
 /** The size of batch */
 export const BATCH_SIZE = 25;
 
