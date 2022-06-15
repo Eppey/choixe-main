@@ -107,7 +107,11 @@ export const getSector = async (stockId: string): Promise<Sector | null> => {
  * @param fromDate start date, "YYYY-MM-DD"
  * @param toDate end date, "YYYY-MM-DD"
  */
-export const updateReportData = async (fromDate: string, toDate: string, tableName?: string): Promise<void> => {
+export const updateReportData = async (
+  fromDate: string,
+  toDate: string,
+  tableName: string = 'reportTestTable',
+): Promise<void> => {
   const reports = await getReports(fromDate, toDate);
   const reportChunks = reports.reduce((result, item, idx) => {
     const chunkIdx = Math.floor(idx / BATCH_SIZE);
@@ -120,39 +124,32 @@ export const updateReportData = async (fromDate: string, toDate: string, tableNa
   console.log(`[ReportTask]: Created ${reportChunks.length} chunks`);
 
   for (const chunk of reportChunks) {
-    const changeRequests = chunk.map((r: Report) => {
-      return {
-        PutRequest: {
-          Item: {
-            reportIdx: { S: r.reportIdx },
-            officeName: { S: r.officeName },
-            businessCode: { S: r.businessCode },
-            businessName: { S: r.businessName },
-            reportTitle: { S: r.reportTitle },
-            reportWriter: { S: r.reportWriter },
-            filePath: { S: r.filePath },
-            reportDate: { S: r.reportDate },
-            gradeValue: { S: r.gradeValue },
-            targetPrice: { S: r.targetPrice },
-            oldTargetPrice: { S: r.oldTargetPrice },
-            lSector: { S: r.lSector },
-            mSector: { S: r.mSector },
-            sSector: { S: r.sSector },
-          },
-        },
-      };
-    });
-    const params = tableName
-      ? {
-          RequestItems: {
-            [tableName]: changeRequests,
-          },
-        }
-      : {
-          RequestItems: {
-            reportTestTable: changeRequests,
-          },
-        };
+    const params = {
+      RequestItems: {
+        [tableName]: chunk.map((r: Report) => {
+          return {
+            PutRequest: {
+              Item: {
+                reportIdx: { S: r.reportIdx },
+                officeName: { S: r.officeName },
+                businessCode: { S: r.businessCode },
+                businessName: { S: r.businessName },
+                reportTitle: { S: r.reportTitle },
+                reportWriter: { S: r.reportWriter },
+                filePath: { S: r.filePath },
+                reportDate: { S: r.reportDate },
+                gradeValue: { S: r.gradeValue },
+                targetPrice: { S: r.targetPrice },
+                oldTargetPrice: { S: r.oldTargetPrice },
+                lSector: { S: r.lSector },
+                mSector: { S: r.mSector },
+                sSector: { S: r.sSector },
+              },
+            },
+          };
+        }),
+      },
+    };
     ddb.batchWriteItem(params, (e) => {
       if (e) {
         console.log(`[ReportTask]: Error in updateReportData => ${e.message}`);
