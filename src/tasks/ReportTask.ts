@@ -4,11 +4,13 @@ import AWS from 'aws-sdk';
 import {
   AWS_REGION,
   BATCH_SIZE,
+  REPORT_DATA_TABLE,
   REPORT_REQUEST_URL,
   SECTOR_REQUEST_OPTION,
   SECTOR_REQUEST_URL,
   WICS_DICT,
 } from '../Constants';
+import { getPastDate } from '../Utils';
 
 AWS.config.update({ region: AWS_REGION });
 const ddb = new AWS.DynamoDB();
@@ -44,20 +46,19 @@ export interface Sector {
 
 /**
  * Fetch report data
- * @param fromDate start date (yyyy-MM-dd)
- * @param toDate end date (yyyy-MM-dd)
+ * @param fromDate start date (YYYY-MM-DD)
+ * @param toDate end date (YYYY-MM-DD)
  * @returns report data
  */
 export const getReports = async (fromDate: string, toDate: string): Promise<Report[]> => {
-  const reportData: Report[] = [];
-
+  let reports: Report[] = [];
   try {
-    const reports = await axios.get(REPORT_REQUEST_URL(fromDate, toDate));
+    const response = await axios.get(REPORT_REQUEST_URL(fromDate, toDate));
 
-    for (const r of reports.data.data) {
+    for (const r of response.data.data) {
       const sector = await getSector(r.BUSINESS_CODE);
       if (sector) {
-        reportData.push({
+        reports.push({
           reportIdx: r.REPORT_IDX.toString(),
           officeName: r.OFFICE_NAME,
           businessCode: r.BUSINESS_CODE,
@@ -78,8 +79,8 @@ export const getReports = async (fromDate: string, toDate: string): Promise<Repo
   } catch (e) {
     console.log(`[ReportTask]: Error => ${e.message}`);
   }
-  console.log(`[ReportTask]: Fetched ${reportData.length} reports (${fromDate} ~ ${toDate})`);
-  return reportData;
+  console.log(`[ReportTask]: Fetched ${reports.length} reports (${fromDate} ~ ${toDate})`);
+  return reports;
 };
 
 /**
@@ -103,15 +104,11 @@ export const getSector = async (stockId: string): Promise<Sector | null> => {
 };
 
 /**
- * Adds new report data to the database in batch
- * @param fromDate start date, "YYYY-MM-DD"
- * @param toDate end date, "YYYY-MM-DD"
+ * Add new report data to the database in batch
+ * @param fromDate start date (YYYY-MM-DD)
+ * @param toDate end date (YYYY-MM-DD)
  */
-export const updateReportData = async (
-  fromDate: string,
-  toDate: string,
-  tableName: string = 'reportTestTable',
-): Promise<void> => {
+export const updateReportData = async (fromDate: string, toDate: string): Promise<void> => {
   const reports = await getReports(fromDate, toDate);
   const reportChunks = reports.reduce((result, item, idx) => {
     const chunkIdx = Math.floor(idx / BATCH_SIZE);
@@ -126,7 +123,7 @@ export const updateReportData = async (
   for (const chunk of reportChunks) {
     const params = {
       RequestItems: {
-        [tableName]: chunk.map((r: Report) => {
+        [REPORT_DATA_TABLE]: chunk.map((r: Report) => {
           return {
             PutRequest: {
               Item: {
@@ -158,6 +155,3 @@ export const updateReportData = async (
     });
   }
 };
-
-// example function execution for testing
-// updateReportData('reportList', '2022-05-01', '2022-05-02').then();
