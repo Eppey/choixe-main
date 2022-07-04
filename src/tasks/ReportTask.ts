@@ -10,7 +10,6 @@ import {
   SECTOR_REQUEST_URL,
   WICS_DICT,
 } from '../Constants';
-import { getPastDate } from '../Utils';
 
 AWS.config.update({ region: AWS_REGION });
 const ddb = new AWS.DynamoDB();
@@ -53,8 +52,7 @@ export interface Sector {
 export const getReports = async (fromDate: string, toDate: string): Promise<Report[]> => {
   let reports: Report[] = [];
   try {
-    const response = await axios.get(REPORT_REQUEST_URL(fromDate, toDate));
-
+    let response = await axios.get(REPORT_REQUEST_URL(fromDate, toDate));
     for (const r of response.data.data) {
       const sector = await getSector(r.BUSINESS_CODE);
       if (sector) {
@@ -74,6 +72,34 @@ export const getReports = async (fromDate: string, toDate: string): Promise<Repo
           mSector: sector.mSector,
           sSector: sector.sSector,
         });
+      }
+    }
+    const lastPage: number = response.data.last_page;
+    for (let pageNum = 2; pageNum <= lastPage; pageNum++) {
+      response = await axios.get(REPORT_REQUEST_URL(fromDate, toDate) + pageNum);
+      for (const index in response.data.data) {
+        // data starting from pg. 2 has a different structure
+        // therefore requires an extra step for determining "r"
+        const r = response.data.data[index];
+        const sector = await getSector(r.BUSINESS_CODE);
+        if (sector) {
+          reports.push({
+            reportIdx: r.REPORT_IDX.toString(),
+            officeName: r.OFFICE_NAME,
+            businessCode: r.BUSINESS_CODE,
+            businessName: r.BUSINESS_NAME,
+            reportTitle: r.REPORT_TITLE,
+            reportWriter: r.REPORT_WRITER,
+            filePath: r.REPORT_FILEPATH,
+            reportDate: r.REPORT_DATE,
+            gradeValue: r.GRADE_VALUE,
+            targetPrice: r.TARGET_STOCK_PRICES,
+            oldTargetPrice: r.OLD_TARGET_STOCK_PRICES,
+            lSector: sector.lSector,
+            mSector: sector.mSector,
+            sSector: sector.sSector,
+          });
+        }
       }
     }
   } catch (e) {
@@ -155,3 +181,5 @@ export const updateReportData = async (fromDate: string, toDate: string): Promis
     });
   }
 };
+
+// updateReportData('2022-03-20', '2022-06-20').then();

@@ -9,16 +9,12 @@ import { getPastDate } from './Utils';
 export const SCORE_QUERY = (sector: string) => {
   return {
     TableName: REPORT_DATA_TABLE,
-    IndexName: 'lSector-date-index',
-    ProjectionExpression: '#dt, businessCode, targetPrice',
-    KeyConditionExpression: '#sector = :sector and #dt >= :date',
-    ExpressionAttributeNames: {
-      '#sector': 'lSector',
-      '#dt': 'date',
-    },
+    IndexName: 'lSector-reportDate-index',
+    ProjectionExpression: 'reportDate, businessCode, targetPrice',
+    KeyConditionExpression: 'lSector = :sector and reportDate >= :3M_date',
     ExpressionAttributeValues: {
       ':sector': sector,
-      ':date': getPastDate(91),
+      ':3M_date': getPastDate(91), // 3 months prior date
     },
     ScanIndexForward: false,
   };

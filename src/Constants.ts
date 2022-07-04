@@ -8,7 +8,10 @@ export const TIMEOUT_LIMIT = 1500;
 export const BATCH_SIZE = 25;
 
 /** The name of the table that report data is stored */
-export const REPORT_DATA_TABLE = 'reportListComplete';
+export const REPORT_DATA_TABLE = 'Report';
+
+/** The name of the table that stock score data is stored */
+export const STOCK_SCORE_DATA_TABLE = 'StockScore';
 
 /**
  * The url for scraping report data
