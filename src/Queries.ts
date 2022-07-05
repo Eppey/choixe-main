@@ -6,7 +6,7 @@ import { getPastDate } from './Utils';
  * @param sector WICS lSector
  * @returns businessCode and targetPrice of stocks
  */
-export const SCORE_QUERY = (sector: string) => {
+export const REPORTS_IN_SECTOR = (sector: string) => {
   return {
     TableName: REPORT_DATA_TABLE,
     IndexName: 'lSector-reportDate-index',

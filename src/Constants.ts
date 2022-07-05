@@ -47,6 +47,15 @@ export const SECTOR_REQUEST_OPTION = (stockId: string) => {
 };
 
 /**
+ * Naver API Url for scoring
+ * @param stockId stock id
+ * @returns request option
+ */
+export const NAVER_API_URL = (stockIds: string) => {
+  return ``;
+};
+
+/**
  * List of WICS main categories
  */
 export const WICS_L_SECTORS = [
