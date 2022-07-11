@@ -48,11 +48,22 @@ export const SECTOR_REQUEST_OPTION = (stockId: string) => {
 
 /**
  * Naver API Url for scoring
- * @param stockId stock id
+ * @param stockIds list of stock ids
  * @returns request option
  */
 export const NAVER_API_URL = (stockIds: string) => {
-  return ``;
+  return `https://polling.finance.naver.com/api/realtime?query=SERVICE_ITEM:${stockIds}`;
+};
+
+/**
+ * Naver API Url for scoring
+ * @param stockId stock businessCode
+ * @param count number of data retrieved
+ * @param option data request option
+ */
+
+export const NAVER_STOCK_CHART = (stockId: string, count: number, option: string) => {
+  return `https://fchart.stock.naver.com/sise.nhn?requestType=0&symbol=${stockId}&count=${count}&timeframe=${option}`;
 };
 
 /**
